@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>LiveTube — YouTube Live, the Twitch way</title>
+<meta name="description" content="Watch YouTube Live channels like Twitch. Zero API quota — live status and viewer counts detected via public page pings." />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M6 4l14 8-14 8z' fill='%239147ff'/%3E%3C/svg%3E" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/geist@1.3.1/dist/fonts/geist-sans/style.css" />
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<nav class="topnav">
+  <button class="nav-burger" id="burgerBtn" data-tip="Toggle sidebar" aria-label="Toggle sidebar">
+    <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" d="M3 6h18M3 12h18M3 18h18"/></svg>
+  </button>
+  <a class="brand" href="/" id="brand">
+    <span class="brand-mark">
+      <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M5 3.5l15 8.5-15 8.5z" fill="currentColor"/></svg>
+    </span>
+    <span class="brand-name">LiveTube</span>
+  </a>
+
+  <form class="search" id="searchForm" autocomplete="off">
+    <input id="searchInput" type="text" placeholder="Search — paste a channel URL, @handle or video link…" spellcheck="false" />
+    <button class="search-btn" type="submit" aria-label="Search">
+      <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z"/></svg>
+    </button>
+  </form>
+
+  <div class="nav-actions">
+    <button id="refreshBtn" class="nav-icon-btn" data-tip="Refresh live statuses">
+      <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" d="M21 12a9 9 0 11-2.64-6.36M21 3v6h-6"/></svg>
+    </button>
+    <button id="theaterBtn" class="nav-icon-btn" data-tip="Theater mode (T)">
+      <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" d="M3 5h18v14H3z"/></svg>
+    </button>
+    <button id="helpBtn" class="nav-icon-btn" data-tip="Shortcuts (?)">
+      <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" d="M9 9a3 3 0 115.2 2.1c-.9 1-2.2 1.5-2.2 2.9M12 17.5v.5"/><circle cx="12" cy="12" r="10"/></svg>
+    </button>
+  </div>
+</nav>
+
+<div class="shell">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-head">Recommended Channels</div>
+    <div class="sidebar-list" id="sidebarList"></div>
+    <div class="sidebar-foot">
+      <span>Status &amp; viewers via public page ping — no API quota.</span>
+      <a class="admin-link" href="/admin.html">Admin panel →</a>
+    </div>
+  </aside>
+
+  <main class="content">
+    <div class="stage-row">
+      <div class="stage">
+        <div class="player-frame" id="playerFrame">
+          <div class="player-empty" id="playerEmpty">
+            <div class="player-empty-mark">
+              <svg viewBox="0 0 24 24" width="28" height="28" aria-hidden="true"><path d="M6 4l14 8-14 8z" fill="currentColor"/></svg>
+            </div>
+            <p class="player-empty-title">Pick a channel to start watching</p>
+            <p class="player-empty-sub">Live status &amp; viewer counts are checked without burning a single unit of API quota.</p>
+          </div>
+        </div>
+
+        <div class="chan-info" id="chanInfo" hidden>
+          <div class="chan-avatar-wrap">
+            <span class="chan-avatar" id="chanAvatar">?</span>
+            <span class="live-pill" id="chanLive" hidden><span class="live-dot"></span>LIVE</span>
+          </div>
+          <div class="chan-main">
+            <h1 class="chan-name" id="chanName">—</h1>
+            <p class="chan-title" id="chanTitle"></p>
+            <div class="chan-tags">
+              <span class="badge badge-purple" id="chanCat"></span>
+              <span class="badge badge-viewers" id="chanViewers" hidden><span class="live-dot"></span><span id="chanViewersText"></span></span>
+              <span class="badge">YouTube Live</span>
+            </div>
+          </div>
+          <div class="chan-actions">
+            <button id="favBtn" class="nav-icon-btn" data-tip="Favorite (F)" aria-label="Favorite">
+              <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z"/></svg>
+            </button>
+            <button id="copyBtn" class="nav-icon-btn" data-tip="Copy link" aria-label="Copy link">
+              <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
+            </button>
+            <a id="openYt" class="btn-primary" href="#" target="_blank" rel="noopener">
+              <svg viewBox="0 0 24 24" width="13" height="13" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3"/></svg>
+              Open on YouTube
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <aside class="chat-panel" id="chatPanel">
+        <div class="chat-head">
+          <span>Stream Chat</span>
+          <button type="button" class="chat-name-edit" id="chatNameEdit" data-tip="Change your name">
+            <span class="chat-name-dot"></span>
+            <span id="chatNameLabel">guest</span>
+          </button>
+        </div>
+        <div class="chat-body" id="chatBody">
+          <div class="chat-empty" id="chatEmpty">Pick a channel to join the chat.</div>
+        </div>
+        <form class="chat-form" id="chatForm">
+          <input id="chatInput" type="text" maxlength="280" placeholder="Send a message…" autocomplete="off" />
+          <button type="submit" class="chat-send" aria-label="Send">
+            <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path d="M2 21l21-9L2 3v7l15 2-15 2z" fill="currentColor"/></svg>
+          </button>
+        </form>
+      </aside>
+    </div>
+
+    <section class="discover">
+      <div class="discover-head">
+        <h2 class="discover-title">Live channels</h2>
+        <p class="discover-sub">Popular channels that stream around the clock — news, space, lo-fi and more.</p>
+        <div class="tabs" id="groupTabs" role="tablist"></div>
+      </div>
+      <div class="grid" id="grid"></div>
+    </section>
+  </main>
+</div>
+
+<footer class="foot">
+  <span>▲ LiveTube — an embedded, distraction-free YouTube Live viewer.</span>
+  <span class="foot-sep">·</span>
+  <span>Live detection pings public YouTube pages server-side.</span>
+  <span class="foot-sep">·</span>
+  <a class="admin-link" href="/admin.html">Admin panel</a>
+</footer>
+
+<div class="modal" id="shortcutsModal" hidden>
+  <div class="modal-card">
+    <div class="modal-head">
+      <span>Keyboard shortcuts</span>
+      <button class="nav-icon-btn" id="closeModal" aria-label="Close">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="shortcut-row"><kbd>/</kbd><span>Focus search</span></div>
+      <div class="shortcut-row"><kbd>T</kbd><span>Theater mode</span></div>
+      <div class="shortcut-row"><kbd>F</kbd><span>Favorite current channel</span></div>
+      <div class="shortcut-row"><kbd>?</kbd><span>Show this help</span></div>
+      <div class="shortcut-row"><kbd>Esc</kbd><span>Close dialogs</span></div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast" hidden></div>
+
+<script src="app.js"></script>
+</body>
+</html>

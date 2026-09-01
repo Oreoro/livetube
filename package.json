@@ -1,0 +1,13 @@
+{
+  "name": "livetube",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Twitch-style frontend for YouTube Live — embedded players, quota-free live checks via public page pings.",
+  "scripts": {
+    "dev": "vercel dev",
+    "deploy": "vercel --prod"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
