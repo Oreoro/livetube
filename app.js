@@ -669,8 +669,6 @@ $("#burgerBtn").addEventListener("click", () => document.body.classList.toggle("
 
 document.addEventListener("keydown", (e) => {
   const typing = document.activeElement.tagName === "INPUT";
-  if (e.key === "?" && !typing) $("#shortcutsModal").hidden = !$("#shortcutsModal").hidden;
-  if (e.key === "Escape") $("#shortcutsModal").hidden = true;
   if (typing) return;
   if (e.key.toLowerCase() === "t") document.body.classList.toggle("theater");
   if (e.key === "/") {

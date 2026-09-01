@@ -945,58 +945,6 @@ body.sidebar-collapsed .foot { margin-left: 0; }
 .admin-link { color: var(--muted-foreground); }
 .admin-link:hover { color: var(--foreground); }
 
-/* shadcn dialog: shortcuts */
-.modal {
-  position: fixed;
-  inset: 0;
-  z-index: 300;
-  display: grid;
-  place-items: center;
-  background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(4px);
-}
-
-.modal-card {
-  width: min(360px, calc(100vw - 40px));
-  background: var(--popover);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  overflow: hidden;
-  box-shadow: var(--shadow-lg);
-}
-
-.modal-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 16px;
-  border-bottom: 1px solid var(--border);
-  font-weight: 600;
-}
-
-.modal-body { padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
-
-.shortcut-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  font-size: 13px;
-  color: var(--muted-foreground);
-}
-
-.shortcut-row kbd {
-  font-family: var(--mono);
-  font-size: 11px;
-  min-width: 26px;
-  text-align: center;
-  color: var(--foreground);
-  background: var(--muted);
-  border: 1px solid var(--border);
-  border-bottom-width: 2px;
-  border-radius: 5px;
-  padding: 2px 6px;
-}
-
 .grid-empty { grid-column: 1 / -1; font-size: 13px; color: var(--muted-foreground); padding: 16px 0; }
 
 /* shadcn toast: bottom-right, slide in */
