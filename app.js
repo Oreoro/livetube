@@ -17,6 +17,7 @@ const SEED_CHANNELS = [
   { handle: "CNN", name: "CNN", cat: "headlines 24/7", group: "News" },
   { handle: "CBSNews", name: "CBS News", cat: "breaking news & top stories", group: "News" },
   { handle: "NBCNews", name: "NBC News NOW", cat: "live news streaming 24/7", group: "News" },
+  { handle: "Reuters", name: "Reuters", cat: "live news & world events", group: "News" },
   { handle: "euronews", name: "Euronews", cat: "European news", group: "News" },
   { handle: "TalkTV", name: "TalkTV", cat: "live UK news & debate", group: "News" },
   { handle: "dwnews", name: "DW News", cat: "international news", group: "News" },
