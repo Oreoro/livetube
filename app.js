@@ -661,6 +661,59 @@ $("#searchForm").addEventListener("submit", (e) => {
   $("#searchInput").blur();
 });
 
+/* ── Theme manager (light/dark/system, shadcn pattern) ───────────── */
+
+const THEME_KEY = "lt_theme";
+const themeMedia = window.matchMedia("(prefers-color-scheme: dark)");
+
+function applyTheme(pref) {
+  const resolved = pref === "system" ? (themeMedia.matches ? "dark" : "light") : pref;
+  document.documentElement.setAttribute("data-theme", resolved);
+  document.documentElement.style.colorScheme = resolved;
+  $("#themeBtn").setAttribute("aria-expanded", "false");
+  $("#themeMenu").querySelectorAll("[data-theme-choice]").forEach((b) => {
+    b.setAttribute("aria-checked", b.dataset.themeChoice === pref ? "true" : "false");
+  });
+}
+
+function initTheme() {
+  const pref = localStorage.getItem(THEME_KEY) ?? "dark";
+  applyTheme(pref);
+  themeMedia.addEventListener("change", () => {
+    if ((localStorage.getItem(THEME_KEY) ?? "dark") === "system") applyTheme("system");
+  });
+
+  const btn = $("#themeBtn");
+  const menu = $("#themeMenu");
+  btn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const open = menu.hidden;
+    menu.hidden = !open;
+    btn.setAttribute("aria-expanded", open ? "true" : "false");
+  });
+  document.addEventListener("click", (e) => {
+    if (!menu.hidden && !$("#themeDropdown").contains(e.target)) {
+      menu.hidden = true;
+      btn.setAttribute("aria-expanded", "false");
+    }
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !menu.hidden) {
+      menu.hidden = true;
+      btn.setAttribute("aria-expanded", "false");
+    }
+  });
+  menu.querySelectorAll("[data-theme-choice]").forEach((item) => {
+    item.addEventListener("click", () => {
+      const pref = item.dataset.themeChoice;
+      localStorage.setItem(THEME_KEY, pref);
+      applyTheme(pref);
+      menu.hidden = true;
+      btn.setAttribute("aria-expanded", "false");
+    });
+  });
+}
+
 $("#refreshBtn").addEventListener("click", () => refreshAll());
 
 $("#theaterBtn").addEventListener("click", () => document.body.classList.toggle("theater"));
@@ -691,6 +744,7 @@ document.head.appendChild(style);
 const urlChannel = new URLSearchParams(location.search).get("channel");
 
 async function boot() {
+  initTheme();
   buildState();
   renderTabs();
   renderSidebar();
