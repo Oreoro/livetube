@@ -122,6 +122,8 @@ const openYt = $("#openYt");
 const chatBody = $("#chatBody");
 const chatEmpty = $("#chatEmpty");
 const toastEl = $("#toast");
+const favBtn = $("#favBtn");
+const copyBtn = $("#copyBtn");
 
 let toastTimer = null;
 
@@ -717,7 +719,7 @@ function applyAccent(accent) {
 
 function initTheme() {
   applyTheme(localStorage.getItem(THEME_KEY) ?? "dark");
-  applyAccent(localStorage.getItem(ACCENT_KEY) ?? "purple");
+  applyAccent(localStorage.getItem(ACCENT_KEY) ?? "red");
   themeMedia.addEventListener("change", () => {
     if ((localStorage.getItem(THEME_KEY) ?? "dark") === "system") applyTheme("system");
   });
