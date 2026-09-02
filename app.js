@@ -718,10 +718,10 @@ function applyAccent(accent) {
 }
 
 function initTheme() {
-  applyTheme(localStorage.getItem(THEME_KEY) ?? "dark");
+  applyTheme(localStorage.getItem(THEME_KEY) ?? "light");
   applyAccent(localStorage.getItem(ACCENT_KEY) ?? "red");
   themeMedia.addEventListener("change", () => {
-    if ((localStorage.getItem(THEME_KEY) ?? "dark") === "system") applyTheme("system");
+    if ((localStorage.getItem(THEME_KEY) ?? "light") === "system") applyTheme("system");
   });
 
   const btn = $("#themeBtn");
@@ -767,6 +767,14 @@ $("#refreshBtn").addEventListener("click", () => refreshAll());
 $("#theaterBtn").addEventListener("click", () => document.body.classList.toggle("theater"));
 
 $("#burgerBtn").addEventListener("click", () => document.body.classList.toggle("sidebar-collapsed"));
+
+/* On mobile the sidebar starts collapsed (drawer) and closes when the backdrop is tapped */
+if (window.matchMedia("(max-width: 820px)").matches) document.body.classList.add("sidebar-collapsed");
+document.addEventListener("click", (e) => {
+  if (window.innerWidth <= 820 && !document.body.classList.contains("sidebar-collapsed") && e.target === document.body) {
+    document.body.classList.add("sidebar-collapsed");
+  }
+});
 
 document.addEventListener("keydown", (e) => {
   const typing = document.activeElement.tagName === "INPUT";
