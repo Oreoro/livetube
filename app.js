@@ -244,8 +244,13 @@ async function checkLive(ch) {
   }
 }
 
+function renderGridLoading() {
+  grid.innerHTML = `<div class="grid-loading">${'<span class="skel-card skeleton"></span>'.repeat(8)}</div>`;
+}
+
 async function refreshAll({ silent = false } = {}) {
   if (!silent) $("#refreshBtn").classList.add("spin");
+  if (!state.channels.some((c) => c.live !== null)) renderGridLoading();
   await Promise.allSettled(state.channels.map(checkLive));
   renderTabs();
   renderSidebar();
@@ -295,11 +300,19 @@ function renderSidebar() {
     const btn = document.createElement("button");
     btn.className = "sidebar-item" + (ch.key === state.activeKey ? " active" : "");
     const v = fmtViewers(ch.viewers);
+    const status = ch.live === true
+      ? `Live now${v ? ` · ${v} watching` : ""}`
+      : ch.live === false ? "Offline" : "Checking status…";
     btn.innerHTML = `
       <span class="side-avatar" style="background:${avatarColor(ch.name)}">${initial(ch.name)}${ch.live ? '<span class="live-dot"></span>' : ""}</span>
       <span class="side-main">
         <span class="side-name">${esc(ch.name)}</span>
         <span class="side-cat">${esc(ch.cat)}</span>
+        <span class="hovercard" role="tooltip">
+          <p class="hovercard-title">${esc(ch.name)}</p>
+          <p class="hovercard-sub">${esc(ch.cat)}</p>
+          <p class="hovercard-sub">${status}</p>
+        </span>
       </span>
       <span class="side-right">${ch.live && v ? `<span class="live-dot"></span>${v}` : ""}</span>`;
     btn.addEventListener("click", () => selectChannel(ch.key));
@@ -315,7 +328,15 @@ function renderGrid() {
     return ch.group === state.activeGroup;
   });
   if (!visible.length) {
-    grid.innerHTML = `<p class="grid-empty">Nothing here yet — star channels to add them to Favorites.</p>`;
+    const isFav = state.activeGroup === "Favorites";
+    grid.innerHTML = `
+      <div class="empty">
+        <span class="empty-icon">
+          <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z"/></svg>
+        </span>
+        <p class="empty-title">${isFav ? "No favorites yet" : "No channels here"}</p>
+        <p class="empty-desc">${isFav ? "Star channels with the ☆ button or press F while watching to pin them here." : "This group has no channels yet. Add some from the admin panel."}</p>
+      </div>`;
     return;
   }
   let i = 0;
@@ -350,6 +371,7 @@ function renderGrid() {
     card.addEventListener("click", () => selectChannel(ch.key));
     grid.appendChild(card);
   }
+  renderTabs();
 }
 
 function renderChanInfo() {
@@ -373,6 +395,7 @@ function renderChanInfo() {
     chanViewers.hidden = true;
   }
   favBtn.classList.toggle("fav-active", favorites.has(ch.key));
+  favBtn.setAttribute("aria-pressed", favorites.has(ch.key) ? "true" : "false");
   openYt.href = ch.videoId
     ? `https://www.youtube.com/watch?v=${ch.videoId}`
     : ch.id
@@ -523,9 +546,18 @@ const chatState = {
   name: null,
   busy: false,
   inFlight: false,
+  autoscroll: true,
   seen: new Set(),
   pending: [],
 };
+
+const autoscrollSwitch = $("#autoscrollSwitch");
+autoscrollSwitch.addEventListener("click", () => {
+  const next = autoscrollSwitch.getAttribute("aria-checked") !== "true";
+  autoscrollSwitch.setAttribute("aria-checked", next ? "true" : "false");
+  chatState.autoscroll = next;
+  if (next) chatBody.scrollTop = chatBody.scrollHeight;
+});
 
 function chatName() {
   if (!chatState.name) {
@@ -556,10 +588,10 @@ function chatMsgEl(m) {
 function chatAppend(m) {
   if (chatState.seen.has(m.seq)) return;
   chatState.seen.add(m.seq);
-  const wasAtBottom = nearBottom(chatBody);
+  const stick = chatState.autoscroll && nearBottom(chatBody);
   chatEmpty.hidden = true;
   chatBody.appendChild(chatMsgEl(m));
-  if (wasAtBottom) chatBody.scrollTop = chatBody.scrollHeight;
+  if (stick) chatBody.scrollTop = chatBody.scrollHeight;
 }
 
 function chatClear() {

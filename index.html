@@ -75,7 +75,13 @@
     <div class="sidebar-head">Recommended Channels</div>
     <div class="sidebar-list" id="sidebarList"></div>
     <div class="sidebar-foot">
-      <span>Status &amp; viewers via public page ping — no API quota.</span>
+      <div class="alert alert-info">
+        <svg class="alert-icon" viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2"/><path stroke="currentColor" stroke-width="2" d="M12 16v-4M12 8h.01"/></svg>
+        <div>
+          <p class="alert-title">Zero API quota</p>
+          <p>Status &amp; viewers come from public page pings.</p>
+        </div>
+      </div>
       <a class="admin-link" href="/admin.html">Admin panel →</a>
     </div>
   </aside>
@@ -125,10 +131,13 @@
       <aside class="chat-panel" id="chatPanel">
         <div class="chat-head">
           <span>Stream Chat</span>
-          <button type="button" class="chat-name-edit" id="chatNameEdit" data-tip="Change your name">
-            <span class="chat-name-dot"></span>
-            <span id="chatNameLabel">guest</span>
-          </button>
+          <div class="chat-head-actions">
+            <button type="button" class="switch" id="autoscrollSwitch" role="switch" aria-checked="true" aria-label="Auto-scroll chat" data-tip="Auto-scroll"></button>
+            <button type="button" class="chat-name-edit" id="chatNameEdit" data-tip="Change your name">
+              <span class="chat-name-dot"></span>
+              <span id="chatNameLabel">guest</span>
+            </button>
+          </div>
         </div>
         <div class="chat-body" id="chatBody">
           <div class="chat-empty" id="chatEmpty">Pick a channel to join the chat.</div>
