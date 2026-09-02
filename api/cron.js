@@ -15,6 +15,7 @@ const HANDLES = [
   "CNN",
   "CBSNews",
   "NBCNews",
+  "Reuters",
   "euronews",
   "TalkTV",
   "dwnews",
