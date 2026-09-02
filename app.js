@@ -118,11 +118,7 @@ const chanLive = $("#chanLive");
 const chanName = $("#chanName");
 const chanTitle = $("#chanTitle");
 const chanCat = $("#chanCat");
-const chanViewers = $("#chanViewers");
-const chanViewersText = $("#chanViewersText");
 const openYt = $("#openYt");
-const favBtn = $("#favBtn");
-const copyBtn = $("#copyBtn");
 const chatBody = $("#chatBody");
 const chatEmpty = $("#chatEmpty");
 const toastEl = $("#toast");
@@ -388,14 +384,6 @@ function renderChanInfo() {
       ? "Offline — showing the latest stream embed."
       : "Live status unknown.";
   chanCat.textContent = ch.cat;
-  if (ch.live && ch.viewers != null) {
-    chanViewersText.textContent = fmtViewers(ch.viewers) + " watching";
-    chanViewers.hidden = false;
-  } else {
-    chanViewers.hidden = true;
-  }
-  favBtn.classList.toggle("fav-active", favorites.has(ch.key));
-  favBtn.setAttribute("aria-pressed", favorites.has(ch.key) ? "true" : "false");
   openYt.href = ch.videoId
     ? `https://www.youtube.com/watch?v=${ch.videoId}`
     : ch.id
