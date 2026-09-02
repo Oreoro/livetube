@@ -247,6 +247,7 @@ async function checkLive(ch) {
 async function refreshAll({ silent = false } = {}) {
   if (!silent) $("#refreshBtn").classList.add("spin");
   await Promise.allSettled(state.channels.map(checkLive));
+  renderTabs();
   renderSidebar();
   renderGrid();
   renderChanInfo();
@@ -264,11 +265,17 @@ function renderTabs() {
   const tabs = $("#groupTabs");
   tabs.innerHTML = "";
   for (const g of GROUPS) {
+    const count = state.channels.filter((ch) => {
+      if (g === "All") return ch.live === true;
+      if (g === "Favorites") return favorites.has(ch.key);
+      return ch.group === g && ch.live === true;
+    }).length;
+
     const btn = document.createElement("button");
     btn.className = "tab" + (g === state.activeGroup ? " tab-active" : "");
-    btn.textContent = g;
     btn.setAttribute("role", "tab");
     btn.setAttribute("aria-selected", g === state.activeGroup ? "true" : "false");
+    btn.innerHTML = `${esc(g)}${count ? `<span class="tab-count">${count}</span>` : ""}`;
     btn.addEventListener("click", () => {
       state.activeGroup = g;
       renderTabs();
@@ -279,7 +286,10 @@ function renderTabs() {
 }
 
 function renderSidebar() {
-  const sorted = [...state.channels].sort((a, b) => (b.viewers ?? 0) - (a.viewers ?? 0));
+  const sorted = [...state.channels].sort((a, b) => {
+    if (a.live !== b.live) return (b.live === true) - (a.live === true);
+    return (b.viewers ?? 0) - (a.viewers ?? 0);
+  });
   sidebarList.innerHTML = "";
   for (const ch of sorted) {
     const btn = document.createElement("button");
@@ -662,9 +672,10 @@ $("#searchForm").addEventListener("submit", (e) => {
   $("#searchInput").blur();
 });
 
-/* ── Theme manager (light/dark/system, shadcn pattern) ───────────── */
+/* ── Theme manager (light/dark/system + accent colors, shadcn pattern) ── */
 
 const THEME_KEY = "lt_theme";
+const ACCENT_KEY = "lt_accent";
 const themeMedia = window.matchMedia("(prefers-color-scheme: dark)");
 
 function applyTheme(pref) {
@@ -677,9 +688,16 @@ function applyTheme(pref) {
   });
 }
 
+function applyAccent(accent) {
+  document.documentElement.setAttribute("data-accent", accent);
+  $("#themeMenu").querySelectorAll("[data-accent-choice]").forEach((b) => {
+    b.setAttribute("aria-checked", b.dataset.accentChoice === accent ? "true" : "false");
+  });
+}
+
 function initTheme() {
-  const pref = localStorage.getItem(THEME_KEY) ?? "dark";
-  applyTheme(pref);
+  applyTheme(localStorage.getItem(THEME_KEY) ?? "dark");
+  applyAccent(localStorage.getItem(ACCENT_KEY) ?? "purple");
   themeMedia.addEventListener("change", () => {
     if ((localStorage.getItem(THEME_KEY) ?? "dark") === "system") applyTheme("system");
   });
@@ -711,6 +729,13 @@ function initTheme() {
       applyTheme(pref);
       menu.hidden = true;
       btn.setAttribute("aria-expanded", "false");
+    });
+  });
+  menu.querySelectorAll("[data-accent-choice]").forEach((item) => {
+    item.addEventListener("click", () => {
+      const accent = item.dataset.accentChoice;
+      localStorage.setItem(ACCENT_KEY, accent);
+      applyAccent(accent);
     });
   });
 }
