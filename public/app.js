@@ -54,6 +54,8 @@ const jumpBtn = $("#jumpBtn");
 const helpBtn = $("#helpBtn");
 const helpModal = $("#helpModal");
 const helpClose = $("#helpClose");
+const searchSuggest = $("#searchSuggest");
+const sleepBtn = $("#sleepBtn");
 
 let toastTimer = null;
 function toast(msg) {
@@ -403,6 +405,60 @@ function cardThumb(ch) {
   return `<span class="card-initial">${initial(ch.name)}</span>`;
 }
 
+function createCard(ch, i) {
+  const card = document.createElement("button");
+  card.className = "card" + (ch.key === state.activeKey ? " active" : "");
+  card.dataset.key = ch.key;
+  card.style.animationDelay = `${Math.min(i * 30, 360)}ms`;
+
+  const badge = ch.live === true
+    ? `<span class="card-live-tag">LIVE</span>`
+    : ch.live === false
+      ? `<span class="card-offline-tag">OFFLINE</span>`
+      : `<span class="card-offline-tag skeleton" style="width:44px;height:18px;border-radius:4px;"></span>`;
+  const v = fmtViewers(ch.viewers);
+  const viewers = ch.live && v
+    ? `<span class="card-viewers-tag"><span class="live-dot"></span>${v}</span>`
+    : "";
+
+  card.innerHTML = `
+    <span class="card-thumb">${cardThumb(ch)}<span class="card-badges">${badge}${viewers}</span></span>
+    <span class="card-body">
+      <span class="card-avatar" style="background:${avatarColor(ch.name)}">
+        <span class="avatar-initial">${initial(ch.name)}</span>
+        ${ch.logo ? `<img class="avatar-img" data-fallback="remove" src="${esc(ch.logo)}" alt="" loading="lazy" />` : ""}
+      </span>
+      <span class="card-main">
+        <span class="card-name">${esc(ch.name)}</span>
+        <span class="card-cat">${esc(ch.cat)}</span>
+      </span>
+    </span>`;
+  card.addEventListener("click", () => selectChannel(ch.key));
+  return card;
+}
+
+const GROUP_ORDER = [
+  "International News", "News", "Music", "Radio", "Livecam", "Camera",
+  "Times Square", "webcam", "Weather", "Space & Earth", "Documentary",
+  "Kids", "Entertainment", "Wrestling", "Political Podcast", "Business",
+  "Sports", "Community",
+];
+
+function groupedList(list) {
+  const map = new Map();
+  for (const ch of list) {
+    if (!map.has(ch.group)) map.set(ch.group, []);
+    map.get(ch.group).push(ch);
+  }
+  const rank = (g) => {
+    const i = GROUP_ORDER.indexOf(g);
+    return i === -1 ? 999 : i;
+  };
+  return [...map.keys()]
+    .sort((a, b) => rank(a) - rank(b) || a.localeCompare(b))
+    .map((g) => [g, map.get(g)]);
+}
+
 function renderGrid() {
   const visible = channelsForPreset(state.activePreset);
   grid.innerHTML = "";
@@ -416,6 +472,7 @@ function renderGrid() {
       : isFav
         ? "Star channels with the ☆ button or press F while watching to pin them here."
         : "This preset has no channels yet.";
+    grid.classList.remove("grid--grouped");
     grid.innerHTML = `
       <div class="empty">
         <span class="empty-icon">
@@ -427,38 +484,29 @@ function renderGrid() {
     return;
   }
 
-  let i = 0;
-  for (const ch of visible) {
-    const card = document.createElement("button");
-    card.className = "card" + (ch.key === state.activeKey ? " active" : "");
-    card.dataset.key = ch.key;
-    card.style.animationDelay = `${Math.min(i * 30, 360)}ms`;
-    i++;
+  const isFiltered = Boolean(state.query.trim()) || state.liveOnly;
+  const canGroup = !isFiltered && state.activePreset !== "favorites" && state.activePreset !== "recent";
 
-    const badge = ch.live === true
-      ? `<span class="card-live-tag">LIVE</span>`
-      : ch.live === false
-        ? `<span class="card-offline-tag">OFFLINE</span>`
-        : `<span class="card-offline-tag skeleton" style="width:44px;height:18px;border-radius:4px;"></span>`;
-    const v = fmtViewers(ch.viewers);
-    const viewers = ch.live && v
-      ? `<span class="card-viewers-tag"><span class="live-dot"></span>${v}</span>`
-      : "";
-
-    card.innerHTML = `
-      <span class="card-thumb">${cardThumb(ch)}<span class="card-badges">${badge}${viewers}</span></span>
-      <span class="card-body">
-        <span class="card-avatar" style="background:${avatarColor(ch.name)}">
-          <span class="avatar-initial">${initial(ch.name)}</span>
-          ${ch.logo ? `<img class="avatar-img" data-fallback="remove" src="${esc(ch.logo)}" alt="" loading="lazy" />` : ""}
-        </span>
-        <span class="card-main">
-          <span class="card-name">${esc(ch.name)}</span>
-          <span class="card-cat">${esc(ch.cat)}</span>
-        </span>
-      </span>`;
-    card.addEventListener("click", () => selectChannel(ch.key));
-    grid.appendChild(card);
+  if (canGroup) {
+    grid.classList.add("grid--grouped");
+    let i = 0;
+    for (const [groupName, chans] of groupedList(visible)) {
+      const section = document.createElement("section");
+      section.className = "grid-section";
+      const liveCount = chans.filter((c) => c.live === true).length;
+      const head = document.createElement("h3");
+      head.className = "grid-section-title";
+      head.innerHTML = `${esc(groupName)}<span class="grid-section-count">${chans.length}${liveCount ? ` · ${liveCount} live` : ""}</span>`;
+      const inner = document.createElement("div");
+      inner.className = "grid";
+      for (const ch of chans) inner.appendChild(createCard(ch, i++));
+      section.appendChild(head);
+      section.appendChild(inner);
+      grid.appendChild(section);
+    }
+  } else {
+    grid.classList.remove("grid--grouped");
+    visible.forEach((ch, i) => grid.appendChild(createCard(ch, i)));
   }
   observeCards();
 }
@@ -816,10 +864,71 @@ copyBtn.addEventListener("click", async () => {
   }
 });
 
+function looksLikeRef(input) {
+  return (
+    /youtu\.?be|youtube\.com/i.test(input) ||
+    /^@/.test(input) ||
+    /^UC[\w-]{20,}$/.test(input) ||
+    /^[\w-]{11}$/.test(input)
+  );
+}
+
+function closeSuggest() {
+  searchSuggest.hidden = true;
+  searchSuggest.innerHTML = "";
+}
+
+function updateSearchSuggest() {
+  const raw = $("#searchInput").value.trim();
+  if (!raw || looksLikeRef(raw)) return closeSuggest();
+  const q = raw.toLowerCase();
+  const matches = state.channels
+    .filter((c) => `${c.name} ${c.cat}`.toLowerCase().includes(q))
+    .slice(0, 8);
+  if (!matches.length) return closeSuggest();
+  searchSuggest.innerHTML = matches
+    .map(
+      (c) => `
+    <button type="button" class="suggest-item" data-key="${esc(c.key)}" role="option">
+      <span class="suggest-avatar" style="background:${avatarColor(c.name)}">${initial(c.name)}</span>
+      <span class="suggest-main">
+        <span class="suggest-name">${esc(c.name)}</span>
+        <span class="suggest-cat">${esc(c.cat)}</span>
+      </span>
+      ${c.live === true ? '<span class="live-dot"></span>' : ""}
+    </button>`
+    )
+    .join("");
+  searchSuggest.hidden = false;
+}
+
+$("#searchInput").addEventListener("input", updateSearchSuggest);
+$("#searchInput").addEventListener("focus", updateSearchSuggest);
+searchSuggest.addEventListener("mousedown", (e) => {
+  const item = e.target.closest(".suggest-item");
+  if (!item) return;
+  e.preventDefault();
+  selectChannel(item.dataset.key);
+  $("#searchInput").value = "";
+  closeSuggest();
+  $("#searchInput").blur();
+});
+
 $("#searchForm").addEventListener("submit", (e) => {
   e.preventDefault();
-  loadFromInput($("#searchInput").value);
-  $("#searchInput").blur();
+  const input = $("#searchInput");
+  const value = input.value.trim();
+  if (!value) return;
+  if (looksLikeRef(value)) {
+    loadFromInput(value);
+  } else {
+    const first = searchSuggest.querySelector(".suggest-item");
+    if (!searchSuggest.hidden && first) selectChannel(first.dataset.key);
+    else toast("No matching channel — paste a channel URL or @handle");
+  }
+  input.value = "";
+  closeSuggest();
+  input.blur();
 });
 
 /* Client-side filter within the active preset */
@@ -889,6 +998,35 @@ helpModal.addEventListener("click", (e) => {
   if (e.target === helpModal) closeHelp();
 });
 
+/* Sleep timer: cycles Off → 15 → 30 → 60 → 120 minutes */
+const sleepState = { minutes: 0, timer: null };
+const SLEEP_STEPS = [0, 15, 30, 60, 120];
+function setSleep(minutes) {
+  clearTimeout(sleepState.timer);
+  sleepState.minutes = minutes;
+  sleepBtn.classList.toggle("active", minutes > 0);
+  if (!minutes) {
+    toast("Sleep timer off");
+    return;
+  }
+  sleepState.timer = setTimeout(() => {
+    ytCommand("pauseVideo");
+    sleepState.minutes = 0;
+    sleepBtn.classList.remove("active");
+    toast("Sleep timer — playback paused");
+  }, minutes * 60000);
+  toast(`Sleep timer set for ${minutes} min`);
+}
+sleepBtn.addEventListener("click", () => {
+  const idx = SLEEP_STEPS.indexOf(sleepState.minutes);
+  setSleep(SLEEP_STEPS[(idx + 1) % SLEEP_STEPS.length]);
+});
+
+/* Dismiss search suggestions on outside click */
+document.addEventListener("click", (e) => {
+  if (!searchSuggest.hidden && !e.target.closest(".search")) closeSuggest();
+});
+
 $("#refreshBtn").addEventListener("click", () => {
   statusCache.clear();
   saveStore(STATUS_KEY, {});
@@ -918,6 +1056,10 @@ document.addEventListener("click", (e) => {
 document.addEventListener("keydown", (e) => {
   if (e.key === "Escape" && !helpModal.hidden) {
     closeHelp();
+    return;
+  }
+  if (e.key === "Escape" && !searchSuggest.hidden) {
+    closeSuggest();
     return;
   }
   const typing = document.activeElement && (document.activeElement.tagName === "INPUT" || document.activeElement.tagName === "TEXTAREA");

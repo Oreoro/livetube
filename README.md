@@ -34,7 +34,11 @@ pathname and renders the matching preset.
   toggle, plus **Recent** and **Favorites**.
 - **Responsive** — fluid from 320px to 1920px with safe-area insets and an
   off-canvas sidebar drawer on phones.
+- **Grouped sections** — Home groups channels by category with live counts.
+- **Search suggestions** — typeahead over the catalog; paste a URL/@handle to
+  resolve a new channel.
 - **Shuffle** — jump to a random live channel in the current preset (`S`).
+- **Sleep timer** — auto-pause playback after 15/30/60/120 minutes.
 - **PWA** — installable with app icons and an offline shell (network-first
   service worker; API requests are never cached).
 - **SEO/social** — canonical URL, Open Graph/Twitter cards, `og.png`,
