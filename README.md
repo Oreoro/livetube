@@ -67,12 +67,17 @@ Or connect the Git repo in the Cloudflare dashboard:
 - **Build command:** `npm run build:catalog` (or leave empty)
 - **Build output directory:** `public`
 
-No environment variables are required. Optional:
+Community-channel storage uses the native **Cloudflare KV** binding
+`LIVETUBE_KV` declared in `wrangler.jsonc` (create it with
+`wrangler kv namespace create LIVETUBE_KV`). Upstash Redis REST is supported as
+a fallback, and per-isolate memory is the last resort.
+
+Optional environment variables:
 
 | Variable | Purpose |
 |---|---|
 | `ADMIN_TOKEN` | Protects `/api/channels` (admin panel) |
-| `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN` | Durable community-channel storage (otherwise per-isolate memory) |
+| `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN` | Alternate durable storage if KV is not bound |
 
 ### Cache warmer
 

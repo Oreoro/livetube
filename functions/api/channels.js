@@ -28,16 +28,17 @@ function sanitizeHandle(raw) {
 }
 
 export async function onRequest({ request, env }) {
-  if (!isAuthorized(request, env)) {
-    return json(401, { error: "Invalid admin token" });
-  }
-
   const storage = createStorage(env);
   const listChannels = async () => (await storage.get(CUSTOM_KEY)) ?? memory;
 
+  /* Reading the list is public (the main app renders it); writes need the token. */
   if (request.method === "GET") {
     const channels = await listChannels();
-    return json(200, { channels, persistent: storage.enabled });
+    return json(200, { channels, persistent: storage.enabled, backend: storage.backend });
+  }
+
+  if (!isAuthorized(request, env)) {
+    return json(401, { error: "Invalid admin token" });
   }
 
   if (request.method === "POST") {

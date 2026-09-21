@@ -1,11 +1,31 @@
 /*
- * Optional durable storage backed by Upstash Redis REST.
- * Configure UPSTASH_REDIS_REST_URL + UPSTASH_REDIS_REST_TOKEN as Pages
- * environment variables/secrets. Without them the API falls back to
- * per-isolate memory.
+ * Durable storage for community channels.
+ *
+ * Prefers a native Cloudflare KV binding (`LIVETUBE_KV`), configured in
+ * wrangler.jsonc. Falls back to Upstash Redis REST if that binding is absent
+ * but UPSTASH_REDIS_REST_URL/TOKEN are set. Without either, the API uses
+ * per-isolate memory (not durable).
  */
 
 export function createStorage(env = {}) {
+  const kv = env.LIVETUBE_KV;
+  if (kv && typeof kv.get === "function") {
+    return {
+      enabled: true,
+      backend: "kv",
+      async get(key) {
+        const raw = await kv.get(key, "json");
+        return raw ?? null;
+      },
+      async set(key, value) {
+        await kv.put(key, JSON.stringify(value));
+      },
+      async del(key) {
+        await kv.delete(key);
+      },
+    };
+  }
+
   const baseUrl = env.UPSTASH_REDIS_REST_URL;
   const token = env.UPSTASH_REDIS_REST_TOKEN;
   const enabled = Boolean(baseUrl && token);
@@ -21,6 +41,7 @@ export function createStorage(env = {}) {
 
   return {
     enabled,
+    backend: enabled ? "upstash" : "memory",
     async get(key) {
       if (!enabled) return null;
       const raw = await command("GET", key);
