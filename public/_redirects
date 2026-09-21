@@ -1,0 +1,10 @@
+# Preset deep links → the single-page app (client reads the path)
+/music          /   200
+/news           /   200
+/livecams       /   200
+/space          /   200
+/documentary    /   200
+/kids           /   200
+/entertainment  /   200
+/business       /   200
+/sports         /   200

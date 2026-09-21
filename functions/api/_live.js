@@ -1,21 +1,14 @@
 import { getCached, setCached } from "./_cache.js";
 
-const UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36";
+export const UA =
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36";
 
-function json(res, status, body) {
-  res.status(status);
-  res.setHeader("Content-Type", "application/json; charset=utf-8");
-  res.setHeader("Cache-Control", "s-maxage=30, stale-while-revalidate=60");
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.end(JSON.stringify(body));
-}
-
-function extractVideoId(url) {
-  const m = String(url).match(/[?&]v=([\w-]{6,})/);
+export function extractVideoId(url) {
+  const m = String(url).match(/[?&]v=([\w-]{11})/);
   return m ? m[1] : null;
 }
 
-function extractPlayerResponse(html) {
+export function extractPlayerResponse(html) {
   const key = "ytInitialPlayerResponse";
   let i = html.indexOf(key);
   while (i !== -1) {
@@ -53,14 +46,14 @@ function extractPlayerResponse(html) {
   return null;
 }
 
-function extractChannelId(html) {
+export function extractChannelId(html) {
   const m =
     html.match(/"channelId":"(UC[\w-]{20,})"/) ||
     html.match(/"externalId":"(UC[\w-]{20,})"/);
   return m ? m[1] : null;
 }
 
-function extractViewers(html) {
+export function extractViewers(html) {
   const m =
     html.match(/"originalViewCount":"(\d+)"/) ||
     html.match(/"viewCount":\s*"(\d+)"/) ||
@@ -68,7 +61,7 @@ function extractViewers(html) {
   return m ? Number(m[1]) : null;
 }
 
-function collectVideoIdCandidates(finalUrl, html) {
+export function collectVideoIdCandidates(finalUrl, html) {
   const pr = extractPlayerResponse(html);
   const out = [];
   const push = (v) => {
@@ -88,7 +81,7 @@ function collectVideoIdCandidates(finalUrl, html) {
   return out;
 }
 
-async function ping(url) {
+export async function ping(url) {
   const r = await fetch(url, {
     redirect: "follow",
     headers: {
@@ -100,7 +93,7 @@ async function ping(url) {
   return { finalUrl: r.url, html: await r.text() };
 }
 
-async function verifyLiveVideo(videoId, channelId) {
+export async function verifyLiveVideo(videoId, channelId) {
   try {
     const { html } = await ping(`https://www.youtube.com/watch?v=${videoId}&hl=en`);
     const pr = extractPlayerResponse(html);
@@ -115,7 +108,7 @@ async function verifyLiveVideo(videoId, channelId) {
   }
 }
 
-async function checkHandle(handle) {
+export async function checkHandle(handle) {
   const cacheKey = `live:h:${handle}`;
   const cached = getCached(cacheKey);
   if (cached) return cached;
@@ -149,54 +142,87 @@ async function checkHandle(handle) {
   return result;
 }
 
-async function checkChannelId(channelId) {
+export async function checkChannelId(channelId) {
+  const cacheKey = `live:c:${channelId}`;
+  const cached = getCached(cacheKey);
+  if (cached) return cached;
+
   const { finalUrl, html } = await ping(
     `https://www.youtube.com/channel/${channelId}/live?hl=en`
   );
   const videoId = extractVideoId(finalUrl);
-  if (videoId || /"isLive":true/.test(html)) {
-    return { live: true, videoId, channelId };
-  }
-  return { live: null, videoId: null, channelId };
+  const live = Boolean(videoId) || /"isLive":true/.test(html);
+  const result = { live: live ? true : null, videoId, channelId, viewers: extractViewers(html) };
+  setCached(cacheKey, result);
+  return result;
 }
 
-async function checkVideo(videoId) {
+export async function checkVideo(videoId) {
+  const cacheKey = `live:v:${videoId}`;
+  const cached = getCached(cacheKey);
+  if (cached) return cached;
+
   const { html } = await ping(`https://www.youtube.com/watch?v=${videoId}&hl=en`);
-  return {
+  const result = {
     live: /"isLive":true/.test(html),
     videoId,
     channelId: extractChannelId(html),
+    viewers: extractViewers(html),
   };
+  setCached(cacheKey, result);
+  return result;
 }
 
-export default async function handler(req, res) {
-  const { channel, handle, url } = req.query;
+/* Handles /c/Name, /user/Name and any other youtube URL by pinging it directly. */
+export async function checkLiveUrl(url) {
+  const cacheKey = `live:u:${url}`;
+  const cached = getCached(cacheKey);
+  if (cached) return cached;
 
+  const { finalUrl, html } = await ping(`${url}${url.includes("?") ? "&" : "?"}hl=en`);
+  const channelId = extractChannelId(html);
+  const candidates = collectVideoIdCandidates(finalUrl, html);
+  const live = Boolean(extractVideoId(finalUrl)) || /"isLive":true/.test(html);
+  let videoId = null;
+  for (const cand of candidates.slice(0, 2)) {
+    if (await verifyLiveVideo(cand, channelId)) {
+      videoId = cand;
+      break;
+    }
+  }
+  if (!videoId && live) videoId = candidates[0] ?? null;
+  const result = {
+    live: live ? true : null,
+    videoId: live ? videoId : null,
+    channelId,
+    viewers: extractViewers(html),
+  };
+  setCached(cacheKey, result);
+  return result;
+}
+
+export function youtubePath(url) {
   try {
-    if (url) {
-      const id = extractVideoId(url) || (String(url).match(/^([\w-]{11})$/) || [])[1];
-      if (!id) return json(res, 400, { error: "Could not extract a video id" });
-      return json(res, 200, await checkVideo(id));
-    }
+    return new URL(url).pathname + new URL(url).search;
+  } catch {
+    return String(url);
+  }
+}
 
-    if (channel) {
-      if (!/^UC[\w-]{20,}$/.test(channel)) {
-        return json(res, 400, { error: "Invalid channel id" });
-      }
-      return json(res, 200, await checkChannelId(channel));
+export async function checkDescriptor(ch) {
+  try {
+    if (ch.handle) return await checkHandle(String(ch.handle).replace(/^@/, ""));
+    if (ch.id) return await checkChannelId(ch.id);
+    if (ch.videoId) return await checkVideo(ch.videoId);
+    if (ch.liveUrl) {
+      const url = String(ch.liveUrl);
+      if (/[?&]v=[\w-]{11}/.test(url)) return await checkVideo(extractVideoId(url));
+      const mChan = url.match(/\/channel\/(UC[\w-]{20,})/);
+      if (mChan) return await checkChannelId(mChan[1]);
+      return await checkLiveUrl(url);
     }
-
-    if (handle) {
-      const clean = String(handle).replace(/^@/, "");
-      const result = await checkHandle(clean);
-      if (result.notFound) {
-        return json(res, 404, { error: "Channel not found or not resolvable" });
-      }
-      return json(res, 200, result);
-    }
-
-    return json(res, 400, { error: "Pass ?channel=UC…, ?handle=name or ?url=…" });
-  } catch (err) {
-    return json(res, 502, { error: "Upstream fetch failed", detail: String(err?.message) });
+    return { live: null, videoId: null, channelId: null, viewers: null };
+  } catch {
+    return { live: null, videoId: null, channelId: null, viewers: null };
   }
 }

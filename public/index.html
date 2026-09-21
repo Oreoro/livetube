@@ -2,9 +2,14 @@
 <html lang="en" data-theme="light" data-accent="red">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <title>LiveTube — YouTube Live, the Twitch way</title>
-<meta name="description" content="Watch YouTube Live channels like Twitch. Zero API quota — live status detected via public page pings." />
+<meta name="description" content="Watch YouTube Live channels like Twitch. Zero API quota — live status detected via public page pings. Music, news, live cams and more presets." />
+<meta name="theme-color" content="#030303" />
+<meta name="color-scheme" content="dark light" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="LiveTube" />
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='12' fill='%23ff0000'/%3E%3Cpath d='M9.75 7.75l7 4.25-7 4.25z' fill='%23fff'/%3E%3C/svg%3E" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -77,6 +82,9 @@
     <div class="sidebar-list" id="sidebarList"></div>
     <div class="sidebar-foot">
       <span class="sidebar-foot-text">Status via public page ping — no API quota used.</span>
+      <span class="sidebar-foot-text sidebar-foot-links">
+        <a href="/admin.html">Admin</a>
+      </span>
     </div>
   </aside>
 
@@ -146,9 +154,9 @@
 
     <section class="discover">
       <div class="discover-head">
-        <h2 class="discover-title">Live channels</h2>
-        <p class="discover-sub">Popular channels that stream around the clock — news, space, lo-fi and more.</p>
-        <div class="tabs" id="groupTabs" role="tablist"></div>
+        <h2 class="discover-title" id="discoverTitle">Live channels</h2>
+        <p class="discover-sub" id="discoverSub">Popular channels streaming around the clock — music, news, cams and more.</p>
+        <nav class="tabs" id="presetNav" role="tablist" aria-label="Presets"></nav>
       </div>
       <div class="grid" id="grid"></div>
     </section>
@@ -159,6 +167,8 @@
   <span>LiveTube — an embedded, distraction-free YouTube Live viewer.</span>
   <span class="foot-sep">·</span>
   <span>Live detection pings public YouTube pages server-side.</span>
+  <span class="foot-sep">·</span>
+  <span>Hosted on Cloudflare Pages.</span>
 </footer>
 
 <div class="toast" id="toast" hidden></div>

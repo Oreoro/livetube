@@ -32,7 +32,7 @@ async function refreshList() {
     return toast("Invalid token");
   }
   const data = await r.json();
-  $("#storageMode").textContent = data.persistent ? "persistent (KV)" : "in-memory (set ADMIN_TOKEN + KV env vars for durability)";
+  $("#storageMode").textContent = data.persistent ? "persistent (Upstash Redis)" : "in-memory (set UPSTASH_REDIS_REST_URL/TOKEN for durability)";
 
   const list = $("#adminList");
   list.innerHTML = "";
