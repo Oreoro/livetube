@@ -26,6 +26,28 @@ Deep-linkable routes select a slice of the catalog:
 `public/_redirects` rewrites these paths to the SPA; the client reads the
 pathname and renders the matching preset.
 
+## Features
+
+- **Default playback** — opens on **Lofi Girl**, autoplaying muted; the first
+  tap/keypress unmutes.
+- **Presets + filters** — path presets, a live text filter, a **Live only**
+  toggle, plus **Recent** and **Favorites**.
+- **Responsive** — fluid from 320px to 1920px with safe-area insets and an
+  off-canvas sidebar drawer on phones.
+- **PWA** — installable with app icons and an offline shell (network-first
+  service worker; API requests are never cached).
+- **Quota-free status** — batched public-page pings with a 60s client cache.
+
+## Custom domain
+
+The Pages project has the custom domain **`livetube.focuslab.pk`** attached.
+Since the `focuslab.pk` zone is in the same account, add (or let Cloudflare
+create) this proxied DNS record:
+
+| Type | Name | Content |
+|---|---|---|
+| CNAME | `livetube` | `livetube-bys.pages.dev` |
+
 ## Project layout
 
 ```

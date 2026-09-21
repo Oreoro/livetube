@@ -1502,3 +1502,139 @@ body.theater .player-frame {
 .card-main { min-width: 0; }
 
 .card-thumb { width: 100%; }
+
+/* ============================================================
+   Discover tools, live toggle, unmute, card hover — polish
+   ============================================================ */
+
+.discover-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 12px;
+}
+
+.filter-wrap {
+  position: relative;
+  flex: 1 1 220px;
+  max-width: 380px;
+}
+
+.filter-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-2);
+  pointer-events: none;
+}
+
+.filter-input {
+  width: 100%;
+  height: 36px;
+  padding: 0 14px 0 34px;
+  font-size: 13px;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 100px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+html[data-theme="light"] .filter-input { background: var(--surface-2); border-color: transparent; }
+.filter-input::placeholder { color: var(--text-2); }
+.filter-input:focus { border-color: var(--accent); }
+
+.chip-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 36px;
+  padding: 0 15px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+  background: var(--chip);
+  border: 1px solid transparent;
+  border-radius: 100px;
+  transition: background 0.15s, color 0.15s;
+}
+
+.chip-toggle:hover { background: var(--chip-hover); }
+.chip-toggle .live-dot { background: var(--text-2); animation: none; }
+.chip-toggle[aria-checked="true"] { color: var(--on-accent); background: var(--accent); }
+.chip-toggle[aria-checked="true"] .live-dot {
+  background: var(--on-accent);
+  animation: pulse 1.6s ease-in-out infinite;
+}
+
+/* Unmute overlay (default Lofi Girl autoplays muted) */
+.unmute-btn {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  z-index: 5;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 100px;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  animation: fadeIn 0.25s ease;
+}
+
+.unmute-btn:hover { background: rgba(0, 0, 0, 0.88); }
+
+/* Card hover: dim + centered play affordance */
+.card { transition: background 0.15s, transform 0.15s; }
+.card:hover { transform: translateY(-2px); }
+
+.card-thumb::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: radial-gradient(circle at center, rgba(0, 0, 0, 0.38), rgba(0, 0, 0, 0.04) 62%);
+  opacity: 0;
+  transition: opacity 0.18s;
+  pointer-events: none;
+}
+
+.card-thumb::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 2;
+  width: 46px;
+  height: 46px;
+  transform: translate(-50%, -50%) scale(0.8);
+  background: var(--accent) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M8 5.5l11 6.5-11 6.5z' fill='%23fff'/%3E%3C/svg%3E") center / 22px no-repeat;
+  border-radius: 50%;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
+  opacity: 0;
+  transition: opacity 0.18s, transform 0.18s;
+  pointer-events: none;
+}
+
+.card:hover .card-thumb::before,
+.card:focus-visible .card-thumb::before { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+.card:hover .card-thumb::after,
+.card:focus-visible .card-thumb::after { opacity: 1; }
+
+/* Thumbnails fade in as they load */
+.card-thumb img { transition: opacity 0.25s; }
+.card-thumb img:not([src]) { opacity: 0; }
+
+@media (max-width: 480px) {
+  .filter-wrap { flex: 1 1 100%; max-width: none; }
+  .chip-toggle { height: 34px; }
+}

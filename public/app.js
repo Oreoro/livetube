@@ -20,7 +20,11 @@ const state = {
   presets: [],
   activePreset: "",
   activeKey: null,
+  query: "",
+  liveOnly: false,
 };
+
+const DEFAULT_CHANNEL = "h:lofigirl";
 
 const $ = (s) => document.querySelector(s);
 const sidebarList = $("#sidebarList");
@@ -42,6 +46,9 @@ const copyBtn = $("#copyBtn");
 const presetNav = $("#presetNav");
 const discoverTitle = $("#discoverTitle");
 const discoverSub = $("#discoverSub");
+const filterInput = $("#filterInput");
+const liveOnlyBtn = $("#liveOnlyBtn");
+const unmuteBtn = $("#unmuteBtn");
 
 let toastTimer = null;
 function toast(msg) {
@@ -136,6 +143,7 @@ function pushHistory(key) {
 function presetMeta(slug) {
   if (!slug) return { slug: "", title: "Live channels", blurb: "Popular channels streaming around the clock — music, news, cams and more." };
   if (slug === "favorites") return { slug, title: "Favorites", blurb: "Channels you starred. Press F while watching to pin one here." };
+  if (slug === "recent") return { slug, title: "Recently watched", blurb: "Pick up where you left off." };
   if (slug === "community") return { slug, title: "Community", blurb: "Channels added through the admin panel." };
   return state.presets.find((p) => p.slug === slug) || { slug: "", title: "Live channels", blurb: "" };
 }
@@ -143,18 +151,28 @@ function presetMeta(slug) {
 function allPresets() {
   const list = [{ slug: "", title: "Home" }, ...state.presets.map((p) => ({ slug: p.slug, title: p.title }))];
   if (state.channels.some((c) => c.group === "Community")) list.push({ slug: "community", title: "Community" });
+  if (recentHistory.length) list.push({ slug: "recent", title: "Recent" });
   list.push({ slug: "favorites", title: "Favorites" });
   return list;
 }
 
-function channelsForPreset(slug) {
+function rawChannelsForPreset(slug) {
   if (slug === "favorites") return state.channels.filter((c) => favorites.has(c.key));
+  if (slug === "recent") return recentHistory.map((k) => state.byKey.get(k)).filter(Boolean);
   if (slug === "community") return state.channels.filter((c) => c.group === "Community");
   if (!slug) return state.channels;
   const p = state.presets.find((x) => x.slug === slug);
   if (!p) return state.channels;
   const groups = new Set(p.groups);
   return state.channels.filter((c) => groups.has(c.group));
+}
+
+function channelsForPreset(slug) {
+  let list = rawChannelsForPreset(slug);
+  if (state.liveOnly) list = list.filter((c) => c.live === true);
+  const q = state.query.trim().toLowerCase();
+  if (q) list = list.filter((c) => `${c.name} ${c.cat}`.toLowerCase().includes(q));
+  return list;
 }
 
 function slugFromPath(pathname) {
@@ -169,6 +187,8 @@ function navigate(slug, { replace = false } = {}) {
   if (replace) history.replaceState({ slug }, "", path);
   else history.pushState({ slug }, "", path);
   state.activePreset = slug;
+  state.query = "";
+  if (filterInput) filterInput.value = "";
   renderPresetNav();
   renderGrid();
   renderSidebar();
@@ -304,7 +324,7 @@ function renderPresetNav() {
   const presets = allPresets();
   presetNav.innerHTML = "";
   for (const p of presets) {
-    const count = channelsForPreset(p.slug).filter((c) => c.live === true).length;
+    const count = rawChannelsForPreset(p.slug).filter((c) => c.live === true).length;
     const btn = document.createElement("a");
     btn.className = "tab" + (p.slug === state.activePreset ? " tab-active" : "");
     btn.href = p.slug ? `/${p.slug}` : "/";
@@ -321,6 +341,7 @@ function renderPresetNav() {
   const meta = presetMeta(state.activePreset);
   if (discoverTitle) discoverTitle.textContent = meta.title;
   if (discoverSub) discoverSub.textContent = meta.blurb;
+  if (liveOnlyBtn) liveOnlyBtn.setAttribute("aria-checked", state.liveOnly ? "true" : "false");
 }
 
 function statusText(ch) {
@@ -382,14 +403,21 @@ function renderGrid() {
   grid.innerHTML = "";
 
   if (!visible.length) {
+    const filtered = Boolean(state.query.trim()) || state.liveOnly;
     const isFav = state.activePreset === "favorites";
+    const title = filtered ? "No matches" : isFav ? "No favorites yet" : "No channels here";
+    const desc = filtered
+      ? "Try a different filter, or turn off “Live only”."
+      : isFav
+        ? "Star channels with the ☆ button or press F while watching to pin them here."
+        : "This preset has no channels yet.";
     grid.innerHTML = `
       <div class="empty">
         <span class="empty-icon">
           <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z"/></svg>
         </span>
-        <p class="empty-title">${isFav ? "No favorites yet" : "No channels here"}</p>
-        <p class="empty-desc">${isFav ? "Star channels with the ☆ button or press F while watching to pin them here." : "This preset has no channels yet."}</p>
+        <p class="empty-title">${title}</p>
+        <p class="empty-desc">${desc}</p>
       </div>`;
     return;
   }
@@ -455,16 +483,47 @@ function renderChanInfo() {
 
 /* ── Playback ──────────────────────────────────────────────── */
 
-function embedUrl(ch, autoplay = true) {
+function embedUrl(ch, { autoplay = true, muted = false } = {}) {
   if (!ch.videoId && !ch.id) return null;
   const base = ch.videoId
     ? `https://www.youtube.com/embed/${ch.videoId}`
     : `https://www.youtube.com/embed/live_stream?channel=${ch.id}`;
-  const params = new URLSearchParams({ autoplay: autoplay ? "1" : "0", rel: "0" });
+  const params = new URLSearchParams({
+    autoplay: autoplay ? "1" : "0",
+    rel: "0",
+    playsinline: "1",
+    enablejsapi: "1",
+  });
+  if (muted) params.set("mute", "1");
   return `${base}?${params}`;
 }
 
-async function selectChannel(key, { autoplay = true } = {}) {
+const playerState = { muted: false };
+
+function ytCommand(func, args = []) {
+  const frame = playerFrame.querySelector("iframe");
+  if (!frame) return;
+  try {
+    frame.contentWindow?.postMessage(JSON.stringify({ event: "command", func, args }), "*");
+  } catch { /* cross-origin guard */ }
+}
+
+function unmute() {
+  if (!playerState.muted) return;
+  ytCommand("unMute");
+  ytCommand("setVolume", [100]);
+  playerState.muted = false;
+  unmuteBtn.hidden = true;
+}
+
+unmuteBtn.addEventListener("click", (e) => {
+  e.stopPropagation();
+  unmute();
+});
+document.addEventListener("pointerdown", unmute);
+document.addEventListener("keydown", unmute);
+
+async function selectChannel(key, { autoplay = true, muted = false } = {}) {
   const ch = state.byKey.get(key);
   if (!ch) return;
   state.activeKey = key;
@@ -491,7 +550,7 @@ async function selectChannel(key, { autoplay = true } = {}) {
     scheduleRender();
   }
 
-  const url = embedUrl(ch, autoplay);
+  const url = embedUrl(ch, { autoplay, muted });
   if (!url) {
     toast("Could not resolve this channel — try Refresh");
     return;
@@ -508,6 +567,9 @@ async function selectChannel(key, { autoplay = true } = {}) {
   void playerFrame.offsetWidth;
   playerFrame.classList.add("switching");
   playerFrame.appendChild(iframe);
+
+  playerState.muted = muted;
+  unmuteBtn.hidden = !muted;
 
   chanInfo.hidden = false;
   renderChanInfo();
@@ -755,6 +817,33 @@ $("#searchForm").addEventListener("submit", (e) => {
   $("#searchInput").blur();
 });
 
+/* Client-side filter within the active preset */
+let filterTimer = null;
+function applyFilter() {
+  state.query = filterInput.value;
+  clearTimeout(filterTimer);
+  filterTimer = setTimeout(() => {
+    renderGrid();
+    renderSidebar();
+  }, 110);
+}
+if (filterInput) {
+  filterInput.addEventListener("input", applyFilter);
+  filterInput.addEventListener("search", () => {
+    state.query = filterInput.value;
+    renderGrid();
+    renderSidebar();
+  });
+}
+
+liveOnlyBtn.addEventListener("click", () => {
+  state.liveOnly = !state.liveOnly;
+  liveOnlyBtn.setAttribute("aria-checked", state.liveOnly ? "true" : "false");
+  renderGrid();
+  renderSidebar();
+  refreshVisible();
+});
+
 $("#refreshBtn").addEventListener("click", () => {
   statusCache.clear();
   saveStore(STATUS_KEY, {});
@@ -899,10 +988,25 @@ async function loadCommunityChannels() {
 
 function applySavedChannel() {
   const urlChannel = new URLSearchParams(location.search).get("channel");
-  if (!urlChannel) return;
+  if (!urlChannel) return false;
   const key = urlChannel.startsWith("@") ? "h:" + urlChannel.slice(1).toLowerCase() : "c:" + urlChannel;
   if (state.byKey.has(key)) selectChannel(key);
   else loadFromInput(urlChannel);
+  return true;
+}
+
+/* Always start on Lofi Girl unless a specific channel was requested. */
+function applyDefaultChannel() {
+  const lofi = state.byKey.get(DEFAULT_CHANNEL);
+  if (lofi) selectChannel(lofi.key, { autoplay: true, muted: true });
+}
+
+function registerServiceWorker() {
+  if (!("serviceWorker" in navigator)) return;
+  if (["localhost", "127.0.0.1", "[::1]"].includes(location.hostname)) return;
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/sw.js").catch(() => {});
+  });
 }
 
 async function boot() {
@@ -926,7 +1030,8 @@ async function boot() {
     }
   }, STATUS_TTL);
 
-  applySavedChannel();
+  if (!applySavedChannel()) applyDefaultChannel();
+  registerServiceWorker();
 }
 
 boot();
