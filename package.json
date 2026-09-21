@@ -2,10 +2,10 @@
   "name": "livetube",
   "version": "0.2.0",
   "private": true,
-  "description": "Twitch-style frontend for YouTube Live on Cloudflare Pages — embedded players, quota-free live checks via public page pings.",
+  "description": "Twitch-style frontend for YouTube Live on Cloudflare Pages \u2014 embedded players, quota-free live checks via public page pings.",
   "scripts": {
-    "build:catalog": "node scripts/build-catalog.mjs",
-    "dev": "wrangler pages dev public",
+    "build:catalog": "node init && node scripts/build-catalog.mjs",
+    "dev": "node init && wrangler pages dev public",
     "deploy": "wrangler pages deploy public",
     "preview": "wrangler pages dev public --remote"
   },
