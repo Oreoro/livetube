@@ -49,6 +49,11 @@ const discoverSub = $("#discoverSub");
 const filterInput = $("#filterInput");
 const liveOnlyBtn = $("#liveOnlyBtn");
 const unmuteBtn = $("#unmuteBtn");
+const shuffleBtn = $("#shuffleBtn");
+const jumpBtn = $("#jumpBtn");
+const helpBtn = $("#helpBtn");
+const helpModal = $("#helpModal");
+const helpClose = $("#helpClose");
 
 let toastTimer = null;
 function toast(msg) {
@@ -844,6 +849,46 @@ liveOnlyBtn.addEventListener("click", () => {
   refreshVisible();
 });
 
+/* Shuffle to a live channel in the current preset */
+function shuffleChannel() {
+  const pool = channelsForPreset(state.activePreset);
+  if (!pool.length) return toast("No channels to shuffle");
+  let candidates = pool.filter((c) => c.live === true);
+  if (!candidates.length) candidates = pool;
+  const others = candidates.filter((c) => c.key !== state.activeKey);
+  const pick = (others.length ? others : candidates)[Math.floor(Math.random() * (others.length || candidates.length))];
+  if (!pick) return;
+  selectChannel(pick.key);
+  toast(`Shuffled to ${pick.name}`);
+}
+shuffleBtn.addEventListener("click", shuffleChannel);
+
+/* Floating "back to player" button once the player scrolls out of view */
+const playerObserver = new IntersectionObserver(
+  ([entry]) => {
+    jumpBtn.hidden = entry.isIntersecting || !state.activeKey;
+  },
+  { threshold: 0.1 }
+);
+playerObserver.observe(playerFrame);
+jumpBtn.addEventListener("click", () => {
+  playerFrame.scrollIntoView({ behavior: "smooth", block: "start" });
+  window.scrollTo({ top: 0, behavior: "smooth" });
+});
+
+/* Keyboard shortcuts help */
+function openHelp() {
+  helpModal.hidden = false;
+}
+function closeHelp() {
+  helpModal.hidden = true;
+}
+helpBtn.addEventListener("click", openHelp);
+helpClose.addEventListener("click", closeHelp);
+helpModal.addEventListener("click", (e) => {
+  if (e.target === helpModal) closeHelp();
+});
+
 $("#refreshBtn").addEventListener("click", () => {
   statusCache.clear();
   saveStore(STATUS_KEY, {});
@@ -871,6 +916,10 @@ document.addEventListener("click", (e) => {
 });
 
 document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && !helpModal.hidden) {
+    closeHelp();
+    return;
+  }
   const typing = document.activeElement && (document.activeElement.tagName === "INPUT" || document.activeElement.tagName === "TEXTAREA");
   if (typing) return;
   if (e.key.toLowerCase() === "t") document.body.classList.toggle("theater");
@@ -879,6 +928,8 @@ document.addEventListener("keydown", (e) => {
     $("#searchInput").focus();
   }
   if (e.key.toLowerCase() === "f" && state.activeKey) toggleFavorite(state.activeKey);
+  if (e.key.toLowerCase() === "s") shuffleChannel();
+  if (e.key === "?") openHelp();
 });
 
 $("#brand").addEventListener("click", (e) => {

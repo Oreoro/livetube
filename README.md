@@ -34,9 +34,15 @@ pathname and renders the matching preset.
   toggle, plus **Recent** and **Favorites**.
 - **Responsive** — fluid from 320px to 1920px with safe-area insets and an
   off-canvas sidebar drawer on phones.
+- **Shuffle** — jump to a random live channel in the current preset (`S`).
 - **PWA** — installable with app icons and an offline shell (network-first
   service worker; API requests are never cached).
+- **SEO/social** — canonical URL, Open Graph/Twitter cards, `og.png`,
+  JSON-LD, `robots.txt` and `sitemap.xml`.
 - **Quota-free status** — batched public-page pings with a 60s client cache.
+
+Keyboard shortcuts: `/` focus search · `T` theater · `F` favorite ·
+`S` shuffle · `?` shortcuts · `Esc` close.
 
 ## Custom domain
 

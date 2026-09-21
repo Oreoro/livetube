@@ -1638,3 +1638,94 @@ html[data-theme="light"] .filter-input { background: var(--surface-2); border-co
   .filter-wrap { flex: 1 1 100%; max-width: none; }
   .chip-toggle { height: 34px; }
 }
+
+/* ============================================================
+   Floating jump button + keyboard shortcuts modal
+   ============================================================ */
+
+.jump-btn {
+  position: fixed;
+  right: max(18px, env(safe-area-inset-right));
+  bottom: max(22px, env(safe-area-inset-bottom));
+  z-index: 180;
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  color: var(--on-accent);
+  background: var(--accent);
+  border: none;
+  border-radius: 50%;
+  box-shadow: var(--shadow-lift);
+  animation: fadeIn 0.2s ease;
+}
+
+.jump-btn:hover { background: var(--accent-hover); }
+
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: var(--scrim);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  animation: fadeIn 0.15s ease;
+}
+
+.modal-card {
+  width: 100%;
+  max-width: 420px;
+  padding: 20px 22px;
+  background: var(--surface-raised);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-l);
+  box-shadow: var(--shadow-lift);
+}
+
+.modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.modal-title { margin: 0; font-size: 17px; font-weight: 500; }
+
+.shortcuts {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.shortcuts li {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 9px 4px;
+  font-size: 14px;
+  color: var(--text);
+  border-bottom: 1px solid var(--line);
+}
+
+.shortcuts li:last-child { border-bottom: none; }
+
+.shortcuts kbd {
+  min-width: 34px;
+  text-align: center;
+  padding: 3px 9px;
+  font-size: 12px;
+  font-family: inherit;
+  color: var(--text-2);
+  background: var(--chip);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+
+.chip-toggle svg { opacity: 0.9; }
