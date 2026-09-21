@@ -9,8 +9,24 @@ export function json(status, body, extraHeaders = {}) {
   });
 }
 
-export function badRequest(message) {
-  return json(400, { error: message });
+/* Best-effort per-isolate rate limit (Cloudflare may also rate-limit upstream). */
+const buckets = (globalThis.__livetubeRate ||= new Map());
+
+export function rateLimited(req, limit = 120, windowMs = 60000) {
+  const ip = req.headers.get("cf-connecting-ip") || req.headers.get("x-forwarded-for") || "local";
+  const now = Date.now();
+  const bucket = buckets.get(ip);
+  if (!bucket || now - bucket.t > windowMs) {
+    buckets.set(ip, { t: now, n: 1 });
+    return false;
+  }
+  bucket.n += 1;
+  if (buckets.size > 5000) {
+    for (const [key, value] of buckets) {
+      if (now - value.t > windowMs) buckets.delete(key);
+    }
+  }
+  return bucket.n > limit;
 }
 
 export async function mapLimit(items, limit, fn) {

@@ -1,5 +1,5 @@
 import { checkDescriptor } from "./_live.js";
-import { json, mapLimit } from "./_http.js";
+import { json, mapLimit, rateLimited } from "./_http.js";
 
 const MAX_CHANNELS = 24;
 const CONCURRENCY = 6;
@@ -22,6 +22,9 @@ export async function onRequest({ request }) {
   }
   if (request.method !== "POST") {
     return json(405, { error: "Method not allowed" });
+  }
+  if (rateLimited(request, 180)) {
+    return json(429, { error: "Too many requests" }, { "Retry-After": "30" });
   }
 
   let body;

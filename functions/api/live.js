@@ -1,5 +1,5 @@
-import { checkDescriptor, extractVideoId } from "./_live.js";
-import { json } from "./_http.js";
+import { checkDescriptor, extractVideoId, isYouTubeUrl } from "./_live.js";
+import { json, rateLimited } from "./_http.js";
 
 const CACHE = { "Access-Control-Allow-Origin": "*", "Cache-Control": "s-maxage=30, stale-while-revalidate=60" };
 
@@ -9,8 +9,15 @@ export async function onRequest({ request }) {
   const handle = searchParams.get("handle");
   const url = searchParams.get("url");
 
+  if (rateLimited(request, 120)) {
+    return json(429, { error: "Too many requests" }, { "Retry-After": "30" });
+  }
+
   try {
     if (url) {
+      if (!isYouTubeUrl(url) && !/^[\w-]{11}$/.test(url)) {
+        return json(400, { error: "url must be a YouTube URL" });
+      }
       const id = extractVideoId(url) || (String(url).match(/^([\w-]{11})$/) || [])[1];
       const result = id ? await checkDescriptor({ videoId: id }) : await checkDescriptor({ liveUrl: url });
       return json(200, result, CACHE);

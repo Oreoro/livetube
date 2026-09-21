@@ -3,6 +3,18 @@ import { getCached, setCached } from "./_cache.js";
 export const UA =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36";
 
+const YT_HOSTS = /^(www\.|m\.|music\.)?(youtube\.com|youtu\.be)$/i;
+
+/* Only allow fetching YouTube URLs — prevents the API being used as an open proxy. */
+export function isYouTubeUrl(raw) {
+  try {
+    const u = new URL(String(raw));
+    return (u.protocol === "https:" || u.protocol === "http:") && YT_HOSTS.test(u.hostname);
+  } catch {
+    return false;
+  }
+}
+
 export function extractVideoId(url) {
   const m = String(url).match(/[?&]v=([\w-]{11})/);
   return m ? m[1] : null;
@@ -175,6 +187,9 @@ export async function checkVideo(videoId) {
 
 /* Handles /c/Name, /user/Name and any other youtube URL by pinging it directly. */
 export async function checkLiveUrl(url) {
+  if (!isYouTubeUrl(url)) {
+    return { live: null, videoId: null, channelId: null, viewers: null };
+  }
   const cacheKey = `live:u:${url}`;
   const cached = getCached(cacheKey);
   if (cached) return cached;
@@ -199,14 +214,6 @@ export async function checkLiveUrl(url) {
   };
   setCached(cacheKey, result);
   return result;
-}
-
-export function youtubePath(url) {
-  try {
-    return new URL(url).pathname + new URL(url).search;
-  } catch {
-    return String(url);
-  }
 }
 
 export async function checkDescriptor(ch) {
